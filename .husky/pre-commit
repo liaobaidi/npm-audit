@@ -3,10 +3,10 @@
 
 # Branch name validation
 local_branch_name=$(git rev-parse --abbrev-ref HEAD)
-valid_branch_regex="^(feat|perf|refactor|style|docs|fix|hotfix|build|chore)\/[0-9]+-.+$"
+valid_branch_regex="^(feat|perf|refactor|style|docs|fix|hotfix|build|chore)\/.+$"
 
 if ! echo "$local_branch_name" | grep -qE "$valid_branch_regex"; then
-    echo "Error: Invalid branch name. Branch name must be in the format of 'type/issue-description', e.g., 'feat/101010-login'"
+    echo "Error: Invalid branch name. Branch name must be in the format of 'type/issue-description', e.g., 'feat/login'"
     exit 1
 fi
 
