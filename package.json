@@ -1,0 +1,40 @@
+{
+  "name": "npm-audit",
+  "version": "1.0.0",
+  "description": "audit repo to avoid some bug",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install",
+    "preinstall": "node -e \"if (process.version.slice(1).split('.')[0] < 22) { console.error('Node.js version 22 or higher is required.'); process.exit(1); }\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liaobaidi/npm-audit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/liaobaidi/npm-audit/issues"
+  },
+  "homepage": "https://github.com/liaobaidi/npm-audit#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.1.3",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.7",
+    "prettier": "^3.3.2",
+    "typescript": "^5.4.5"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
