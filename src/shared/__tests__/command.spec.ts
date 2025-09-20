@@ -1,65 +1,113 @@
-// filepath: e:\serve\npm-audit\src\shared\__test__\command.spec.ts
+// 导入要测试的函数和 execaCommand，我们稍后会模拟它
 import { runCommand } from '../command'
-import { run } from 'node-cmd'
+import { execaCommand } from 'execa'
 
-jest.mock('node-cmd', () => ({
-	run: jest.fn(),
+jest.mock('execa', () => ({
+	execaCommand: jest.fn(),
 }))
 
-const runMock = run as unknown as jest.Mock
-
-beforeEach(() => {
-	jest.clearAllMocks()
-})
-
 describe('runCommand', () => {
-	it('如果没有传递命令，应该报错处理', async () => {
-		await expect(runCommand('')).rejects.toThrow('Command is required')
-		expect(runMock).not.toHaveBeenCalled()
+	beforeEach(() => {
+		jest.clearAllMocks()
 	})
 
-	it('如果 node-cmd 返回错误，应该以对象形式拒绝并包含 err 和 stderr', async () => {
-		const fakeErr = new Error('exec failed')
-		runMock.mockImplementation(
-			(
-				cmd: string,
-				cb: (err: unknown, data: unknown, stderr: unknown) => void
-			) => cb(fakeErr, null, 'some stderr')
-		)
-
-		await expect(runCommand('invalid-cmd')).rejects.toMatchObject({
-			err: fakeErr,
-			stderr: 'some stderr',
+	// --- 测试成功场景 ---
+	test('应该在命令成功时返回 stdout', async () => {
+		;(execaCommand as jest.Mock).mockResolvedValue({
+			stdout: '成功执行的输出',
+			stderr: '',
+			exitCode: 0,
+			failed: false,
+			isCanceled: false,
+			isTimedOut: false,
+			killed: false,
+			command: '',
+			message: '',
 		})
 
-		expect(runMock).toHaveBeenCalledTimes(1)
-		expect(runMock).toHaveBeenCalledWith('invalid-cmd', expect.any(Function))
+		const result = await runCommand('test command')
+		// 验证返回值是否为我们模拟的 stdout
+		expect(result).toBe('成功执行的输出')
+		// 验证 execaCommand 是否被调用了正确的参数
+		expect(execaCommand).toHaveBeenCalledWith('test command', {
+			cwd: undefined,
+			env: expect.any(Object), // 确保 env 存在
+			timeout: undefined,
+			shell: true,
+			windowsHide: true,
+		})
 	})
 
-	it('如果 node-cmd 成功，应该解析 stdout 文本', async () => {
-		runMock.mockImplementation(
-			(
-				cmd: string,
-				cb: (err: unknown, data: unknown, stderr: unknown) => void
-			) => cb(null, 'ok output', '')
-		)
+	// --- 测试自定义选项 ---
+	test('应该将自定义选项传递给 execaCommand', async () => {
+		;(execaCommand as jest.Mock).mockResolvedValue({
+			stdout: 'options test',
+			stderr: '',
+			exitCode: 0,
+			failed: false,
+			isCanceled: false,
+			isTimedOut: false,
+			killed: false,
+			command: '',
+			message: '',
+		})
 
-		await expect(runCommand('echo ok')).resolves.toBe('ok output')
+		const options = {
+			cwd: '/my-project',
+			env: { MY_VAR: 'test' },
+			timeout: 5000,
+			shell: false,
+		}
+		await runCommand('another command', options)
 
-		expect(runMock).toHaveBeenCalledTimes(1)
-		expect(runMock).toHaveBeenCalledWith('echo ok', expect.any(Function))
+		// 验证 execaCommand 是否正确接收了所有选项
+		expect(execaCommand).toHaveBeenCalledWith('another command', {
+			cwd: '/my-project',
+			env: { ...process.env, MY_VAR: 'test' },
+			timeout: 5000,
+			shell: false,
+			windowsHide: true,
+		})
 	})
 
-	it('确保传入的命令字符串被传递给 node-cmd', async () => {
-		runMock.mockImplementation(
-			(
-				cmd: string,
-				cb: (err: unknown, data: unknown, stderr: unknown) => void
-			) => cb(null, 'output', '')
+	// --- 测试失败场景 ---
+	test('应该在命令失败时抛出错误', async () => {
+		// 模拟 execaCommand 失败，并返回一个带有 stderr 和 stdout 的错误对象
+		const mockError = {
+			stdout: '部分成功输出',
+			stderr: '这是一个错误信息',
+			message: '命令执行失败',
+			exitCode: 1,
+			failed: true,
+		}
+		;(execaCommand as jest.Mock).mockRejectedValue(mockError)
+
+		// 验证函数是否抛出了错误
+		await expect(runCommand('failed command')).rejects.toThrow(
+			'Command failed: failed command'
 		)
 
-		const cmd = 'some-command --flag'
-		await runCommand(cmd)
-		expect(runMock).toHaveBeenCalledWith(cmd, expect.any(Function))
+		// 验证抛出的错误对象是否包含了 stdout 和 stderr
+		await expect(runCommand('failed command')).rejects.toMatchObject({
+			stdout: '部分成功输出',
+			stderr: '这是一个错误信息',
+		})
+	})
+
+	// --- 测试 allowNonZeroExit 场景 ---
+	test('当 allowNonZeroExit 为 true 时，即使失败也应该返回 stdout', async () => {
+		const mockError = {
+			stdout: '非零退出时的输出',
+			stderr: '非零退出时的错误',
+			exitCode: 1,
+			failed: true,
+		}
+		;(execaCommand as jest.Mock).mockRejectedValue(mockError)
+
+		// 传递 allowNonZeroExit: true
+		const result = await runCommand('non-zero exit', { allowNonZeroExit: true })
+
+		// 验证函数没有抛出错误，而是返回了 stdout
+		expect(result).toBe('非零退出时的输出')
 	})
 })

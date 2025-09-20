@@ -9,4 +9,7 @@ module.exports = {
 	testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
 	// 忽略的测试文件，通常是 node_modules
 	testPathIgnorePatterns: ['/node_modules/'],
+	moduleNameMapper: {
+		'^@shared/(.*)$': '<rootDir>/src/shared/$1',
+	},
 }
