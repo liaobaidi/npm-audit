@@ -128,3 +128,6 @@ dist
 *.njsproj
 *.sln
 *.sw? 
+
+# temp files
+workspace/
